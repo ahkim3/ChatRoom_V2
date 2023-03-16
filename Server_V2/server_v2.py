@@ -149,8 +149,7 @@ print("Waiting for a client to connect...\n")
 try:
     while True:
         conn, addr = server_socket.accept()
-
-        if client_list.count(conn) < MAXCLIENTS:
+        if len(client_list) < MAXCLIENTS:
             client_list.append(conn)  # Append the new client
 
             print("Client Connected.")
