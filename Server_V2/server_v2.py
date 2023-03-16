@@ -9,6 +9,7 @@ import threading
 import sys
 
 bufsize = 1024  # Max amount of data to be received at once
+users_file = "users.txt"  # File to store user credentials
 MAXCLIENTS = 3  # Max number of clients that can connect to the server
 
 # Set server IP address and port number
@@ -32,6 +33,7 @@ except socket.error as err:
 server_socket.listen(MAXCLIENTS)
 
 client_list = []  # Keeps track of connected clients
+logged_in_users = {}  # Dictionary of logged in users, with their usernames as keys
 
 
 # Handle client connections
@@ -41,9 +43,36 @@ def client_thread(conn, addr):
     while True:
         try:
             # Receive data
-            data = conn.recv(bufsize)
+            data = conn.recv(bufsize).decode().strip()
             if data:
-                broadcast(data, conn)
+                # Parse command and parameters
+                parts = data.split()
+                command = parts[0].lower()
+                params = parts[1:]
+
+                # Handle login command
+                if command == "login":
+                    username, password = params
+                    try:
+                        if is_valid_credentials(username, password):
+                            logged_in_users[conn] = username
+                            conn.send(b"login confirmed")
+                            print(username, "login.")
+                        else:
+                            conn.send(
+                                b"Denied. User name or password incorrect.")
+                    except FileNotFoundError:
+                        conn.send(
+                            b"The users.txt file does not exist. Please create a newuser.")
+
+                # Handle logout command
+                elif command == "logout":
+                    username = logged_in_users[conn]
+                    print(username, "logout.")
+                    conn.close()
+                    remove(conn)
+                    break
+
             else:
                 raise socket.error("Client disconnected")  # No data received
         except socket.error as err:
@@ -54,8 +83,41 @@ def client_thread(conn, addr):
             return
 
 
-# Broadcast data to all connected clients
-def broadcast(data, connection):
+# Check if user is logged in
+def is_logged_in(client):
+    return client in client_list and client in logged_in_users.values()
+
+
+# Check if user credentials are valid
+def is_valid_credentials(username, password):
+    # Grab user credentials from file
+    with open(users_file, "r") as f:
+        data = [tuple(line.strip().replace("(", "").replace(")", "").split(", "))
+                for line in f if len(line.strip().split(", ")) == 2]
+
+    # Check for a match
+    for user, passwd in data:
+        if user == username and passwd == password:
+            return True
+    return False
+
+
+# Send data to specific client
+def send(data, connection, client):
+    if client in client_list:
+        if client != connection and client.fileno() != -1:
+            try:
+                client.send(data)
+            except socket.error as err:
+                print("Socket error:", err)
+                client.close()
+                remove(client)
+    else:
+        print("Client not found.")
+
+
+# Send data to all connected clients
+def send_all(data, connection):
     for client in client_list:
         if client != connection and client.fileno() != -1:
             try:
@@ -68,10 +130,18 @@ def broadcast(data, connection):
 
 # Remove a client from the list
 def remove(connection):
-    if connection in client_list:
-        connection.shutdown(socket.SHUT_RDWR)  # Shut down the socket
-        connection.close()
-        client_list.remove(connection)
+    try:
+        # Remove from logged_in_users
+        if connection in logged_in_users:
+            del logged_in_users[connection]
+
+        # Remove from client_list
+        if connection in client_list:
+            # connection.shutdown(socket.SHUT_RDWR)  # Shut down the socket
+            connection.close()
+            client_list.remove(connection)
+    except socket.error or OSError as err:
+        print("Socket error:", err)
 
 
 # Accept client connections

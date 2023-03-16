@@ -46,6 +46,7 @@ def validate(data):
                     if len(params) != 2:
                         print("Invalid usage. Usage: login <username> <password>")
                         return False
+                    return True
 
                 # Check if newuser command is used correctly
                 elif data.startswith("newuser"):
@@ -69,7 +70,7 @@ def validate(data):
                         print("Username and password cannot contain spaces.")
                         return False
 
-                return True
+                    return True
             else:
                 # Unavailable commands
                 if data.startswith("send") or data.startswith("who") or data.startswith("logout"):
@@ -164,11 +165,10 @@ def send():
 
             # Validate input
             if validate(data):
-                print("valid")
+                client_socket.send(data.encode())
             else:
-                print("invalid")
+                pass
 
-            client_socket.send(data.encode())
         except KeyboardInterrupt:
             print("\nClosing client...")
             client_socket.close()
