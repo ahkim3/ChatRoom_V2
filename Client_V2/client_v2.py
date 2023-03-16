@@ -1,7 +1,7 @@
 # Name: Andrew Kim
 # Pawprint: AHKYQX
-# Date: 3/14/2023
-# Description: Implements client side of a chatroom. Facilitates communication between multiple clients, including login, newuser, send, and logout functions.
+# Date: 3/16/2023
+# Description: Implements client side of a chatroom. Facilitates communication between multiple clients, including login, newuser, send all, send, who, and logout functions.
 
 
 import socket
@@ -30,6 +30,8 @@ except:
 
 # User is not logged in by default
 logged_in = False
+
+print("My chat room client. Version Two.\n")
 
 
 def validate(data):
@@ -133,7 +135,6 @@ def validate(data):
                     print("Invalid command.")
                     return False
     except KeyboardInterrupt:
-        print("\nClosing client...")
         client_socket.close()
         sys.exit()
 
@@ -171,7 +172,6 @@ def send():
                 pass
 
         except KeyboardInterrupt:
-            print("\nClosing client...")
             client_socket.close()
             sys.exit()
         except socket.error as err:
@@ -194,7 +194,7 @@ try:
     while receive_thread.is_alive() and send_thread.is_alive():
         pass
 except KeyboardInterrupt:
-    print("\nClosing client...")
+    pass
 finally:
     client_socket.close()
     sys.exit()

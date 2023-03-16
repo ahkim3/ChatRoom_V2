@@ -1,7 +1,7 @@
 # Name: Andrew Kim
 # Pawprint: AHKYQX
-# Date: 3/14/2023
-# Description: Implements server side of a chatroom. Facilitates communication between multiple clients, including login, newuser, send, and logout functions.
+# Date: 3/16/2023
+# Description: Implements server side of a chatroom. Facilitates communication between multiple clients, including login, newuser, send all, send, who, and logout functions.
 
 
 import socket
@@ -36,10 +36,11 @@ server_socket.listen(MAXCLIENTS)
 client_list = []  # Keeps track of connected clients
 logged_in_users = {}  # Dictionary of logged in users, with their usernames as keys
 
+print("My chat room server. Version Two.\n")
+
 
 # Handle client connections
 def client_thread(conn, addr):
-    conn.send(b"Welcome to the chatroom!")
 
     while True:
         try:
@@ -85,13 +86,21 @@ def client_thread(conn, addr):
 
                 # Handle send all / send commands
                 elif command == "send":
-                    if params[0].lower() == "all":
+                    sender_username = ""
+                    if conn in logged_in_users:
+                        sender_username = logged_in_users[conn]
 
+                    if params[0].lower() == "all":
                         message = " ".join(params[1:])
+                        print(sender_username, ": ", message, sep="")
+                        message = sender_username + ": " + message
                         send_all(message.encode(), conn)
                     else:
                         username = params[0]
                         message = " ".join(params[1:])
+                        print(sender_username,
+                              " (to ", username, "): ", message, sep="")
+                        message = sender_username + ": " + message
                         for client in logged_in_users:
                             if logged_in_users[client] == username:
                                 client.send(message.encode())
@@ -105,6 +114,8 @@ def client_thread(conn, addr):
                 # Handle logout command
                 elif command == "logout":
                     username = logged_in_users[conn]
+                    logout_message = username + " left."
+                    send_all(logout_message.encode(), conn)
                     print(username, "logout.")
                     conn.close()
                     remove(conn)
@@ -171,14 +182,11 @@ def remove(connection):
 
 
 # Accept client connections
-print("Waiting for a client to connect...\n")
 try:
     while True:
         conn, addr = server_socket.accept()
         if len(client_list) < MAXCLIENTS:
             client_list.append(conn)  # Append the new client
-
-            print("Client Connected.")
 
             # New thread to handle the client connection
             threading.Thread(target=client_thread, args=(conn, addr)).start()
@@ -188,7 +196,6 @@ try:
             conn.close()
 
 except KeyboardInterrupt:
-    print("\nClosing server...")
     for conn in client_list:
         remove(conn)
     server_socket.close()
