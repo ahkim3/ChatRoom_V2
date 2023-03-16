@@ -65,6 +65,19 @@ def client_thread(conn, addr):
                         conn.send(
                             b"The users.txt file does not exist. Please create a newuser.")
 
+                # Handle send all / send commands
+                elif command == "send":
+                    if params[0].lower() == "all":
+
+                        message = " ".join(params[1:])
+                        send_all(message.encode(), conn)
+                    else:
+                        username = params[0]
+                        message = " ".join(params[1:])
+                        for client in logged_in_users:
+                            if logged_in_users[client] == username:
+                                client.send(message.encode())
+
                 # Handle logout command
                 elif command == "logout":
                     username = logged_in_users[conn]
@@ -100,20 +113,6 @@ def is_valid_credentials(username, password):
         if user == username and passwd == password:
             return True
     return False
-
-
-# Send data to specific client
-def send(data, connection, client):
-    if client in client_list:
-        if client != connection and client.fileno() != -1:
-            try:
-                client.send(data)
-            except socket.error as err:
-                print("Socket error:", err)
-                client.close()
-                remove(client)
-    else:
-        print("Client not found.")
 
 
 # Send data to all connected clients

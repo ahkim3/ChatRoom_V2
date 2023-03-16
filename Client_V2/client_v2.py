@@ -83,11 +83,11 @@ def validate(data):
             if data.startswith("send") or data.startswith("who") or data.startswith("logout"):
                 # Check if send all command is used correctly
                 if data.startswith("send all"):
-                    message = ' '.join(params[1:])
-
                     if len(params) <= 0:
                         print("Invalid usage. Usage: send all <message>")
                         return False
+
+                    message = ' '.join(params[1:])
 
                     if len(message) > 256 or len(message) < 1:
                         print(
@@ -98,11 +98,12 @@ def validate(data):
 
                 # Check if send command is used correctly
                 elif data.startswith("send"):
-                    username, message = params
-
                     if len(params) < 2:
                         print("Invalid usage. Usage: send <username> <message>")
                         return False
+
+                    username = params[0]
+                    message = ' '.join(params[1:])
 
                     if len(message) > 256 or len(message) < 1:
                         print(
