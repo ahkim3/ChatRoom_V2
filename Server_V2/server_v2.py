@@ -7,6 +7,7 @@
 import socket
 import threading
 import sys
+import os.path
 
 bufsize = 1024  # Max amount of data to be received at once
 users_file = "users.txt"  # File to store user credentials
@@ -65,6 +66,23 @@ def client_thread(conn, addr):
                         conn.send(
                             b"The users.txt file does not exist. Please create a newuser.")
 
+                # Handle newuser command
+                elif command == "newuser":
+                    username, password = params
+
+                    # Create file if it does not exist
+                    if not os.path.exists(users_file):
+                        with open(users_file, "w") as f:
+                            pass
+
+                    # Check if user already exists
+                    if is_valid_credentials(username, password):
+                        conn.send(
+                            b"Denied. User account already exists.")
+                    else:
+                        create_new_user(username, password)
+                        conn.send(b"New user account created. Please login.")
+
                 # Handle send all / send commands
                 elif command == "send":
                     if params[0].lower() == "all":
@@ -77,6 +95,12 @@ def client_thread(conn, addr):
                         for client in logged_in_users:
                             if logged_in_users[client] == username:
                                 client.send(message.encode())
+
+                # Handle who command
+                elif command == "who":
+                    who_response = ', '.join(
+                        [str(client) for client in logged_in_users.values()])
+                    conn.send(who_response.encode())
 
                 # Handle logout command
                 elif command == "logout":
@@ -96,11 +120,6 @@ def client_thread(conn, addr):
             return
 
 
-# Check if user is logged in
-def is_logged_in(client):
-    return client in client_list and client in logged_in_users.values()
-
-
 # Check if user credentials are valid
 def is_valid_credentials(username, password):
     # Grab user credentials from file
@@ -113,6 +132,14 @@ def is_valid_credentials(username, password):
         if user == username and passwd == password:
             return True
     return False
+
+
+# Create a new user account
+def create_new_user(username, password):
+    with open(users_file, "a") as f:
+        f.write(f"\n({username}, {password})")
+
+    print("New user account created.")
 
 
 # Send data to all connected clients
